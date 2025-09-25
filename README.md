@@ -12,7 +12,7 @@
 
 ## golang 版客户端
 
-在 [Releases](./releases) 中下载对应平台的二进制文件并运行即可
+在 [Releases](https://github.com/Caterpie771881/szu_srun_client/releases) 中下载对应平台的二进制文件并运行即可
 
 PS: 运行前请保证二进制文件有可执行权限
 
