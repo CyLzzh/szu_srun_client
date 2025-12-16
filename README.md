@@ -1,8 +1,7 @@
 # SZU Srun Client
 
-一个用于在命令行环境下登陆深大校园网的客户端, 适用于 srun 认证系统 (drcom 认证系统请移步 [login_szu_network](https://github.com/Caterpie771881/login_szu_network))
+一个用于在命令行环境下登陆海大校园网的客户端, 适用于 srun 认证系统 (drcom 认证系统请移步 [login_szu_network](https://github.com/Caterpie771881/login_szu_network))
 
-~~需要 python3 环境, 由于认证逻辑比较复杂, 所以没用 shell 脚本来写~~
 
 最新客户端使用 golang 编写, 无需依赖 python 环境即可实现跨平台
 
