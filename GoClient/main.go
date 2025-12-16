@@ -18,9 +18,9 @@ get_challenge: 获取加密 token 的地址
 srun_portal: 身份认证地址
 */
 var targets = map[string]string{
-	"rad_user_info": "http://net.szu.edu.cn/cgi-bin/rad_user_info",
-	"get_challenge": "http://net.szu.edu.cn/cgi-bin/get_challenge",
-	"srun_portal":   "http://net.szu.edu.cn/cgi-bin/srun_portal",
+	"rad_user_info": "http://10.129.1.1/cgi-bin/rad_user_info",
+	"get_challenge": "http://10.129.1.1/cgi-bin/get_challenge",
+	"srun_portal":   "http://10.129.1.1/cgi-bin/srun_portal",
 }
 
 const (
@@ -39,7 +39,8 @@ const (
 	TYPE string = "1"
 	N    string = "200"
 	ENC  string = "srun_bx1"
-	ACID string = "12"
+	//这是变量，不懂golang不会改
+	ACID string = "143"
 	//
 	ModeLogin  = "1"
 	ModeLogout = "2"
