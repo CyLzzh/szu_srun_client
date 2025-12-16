@@ -10,7 +10,15 @@ from encryptlib import sha1
 from encryptlib import chkstr
 from encryptlib import info_
 
-
+#个人变量，需要根据实际情况修改
+username = ''#账号密码自己填
+password = ''
+ACID = "143" #登录地点
+"""
+登录地点从登录URL找,比如
+http://10.129.1.1/srun_portal_pc?ac_id=143&apsn=E63722A181XXXXXXXXXX......
+就是143
+"""
 version = sys.version_info
 if version < (3, 0):
     print('The current version is not supported, you need to use python3')
@@ -20,9 +28,9 @@ if version < (3, 0):
 # get_challenge: 获取加密 token 的地址
 # srun_portal: 身份认证地址
 url = {
-    'rad_user_info': 'http://net.szu.edu.cn/cgi-bin/rad_user_info',
-    'get_challenge': 'http://net.szu.edu.cn/cgi-bin/get_challenge',
-    'srun_portal'  : 'http://net.szu.edu.cn/cgi-bin/srun_portal'
+    'rad_user_info': 'http://10.129.1.1/cgi-bin/rad_user_info',
+    'get_challenge': 'http://10.129.1.1/cgi-bin/get_challenge',
+    'srun_portal'  : 'http://10.129.1.1/cgi-bin/srun_portal'
 }
 
 # jsonp 的标志, 一般不用变动
@@ -30,13 +38,12 @@ callback = "jQueryCallback"
 # 用于模拟浏览器访问的 UA 头, 一般不用变动
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 
-# 加密常量, 一般不用变动
+# 加密常量，一般无需修改
 TYPE = "1"
 N = "200"
 ENC = 'srun_bx1'
-ACID = "12"
 
-BANNER = """
+BANNER = r"""
    ________  __  __  ____                ________          __ 
   / __/_  / / / / / / __/_____ _____    / ___/ (_)__ ___  / /_
  _\ \  / /_/ /_/ / _\ \/ __/ // / _ \  / /__/ / / -_) _ \/ __/
@@ -169,7 +176,6 @@ def srun_portal_login(
         "password": '{MD5}' + hmd5_password,
         "os": os,
         "name": os,
-        "nas_ip": '',
         "double_stack": 0,
         "chksum": chksum,
         "info": info,
@@ -177,7 +183,6 @@ def srun_portal_login(
         "ip": ip,
         "n": N,
         "type": TYPE,
-        "captchaVal": '',
         '_': int(time.time() * 1000)
     })
     try:
@@ -185,22 +190,47 @@ def srun_portal_login(
             url=f"{path}?{params}",
             headers={"User-Agent": UA}
         )
-        result = json.loads(resp.text[len(callback)+1:-1])
-        assert result.get('res') == 'ok'
-        print("[*] 登录成功")
+        # 打印 HTTP 状态，便于排查
+        print(f"[*] HTTP 状态码: {resp.status_code}")
+        raw = resp.text
+        # 处理 callback 包裹的 json (例如 jQueryCallback(...))
+        if raw.startswith(callback):
+            content = raw[len(callback)+1:-1]
+        else:
+            content = raw
+        try:
+            result = json.loads(content)
+        except json.JSONDecodeError:
+            print("[!] 返回内容不是合法 JSON，原始响应如下（前1000字符）：")
+            print(raw[:1000])
+            return
+        if result.get('res') == 'ok':
+            print("[*] 登录成功")
+            return
+        # 登录未成功，进入错误检查分支
     except requests.RequestException:
         print(f"[!] 访问 {path} 的过程中出现网络问题, 请检查:")
         print("1. 网络环境是否正常")
         print("2. 配置的 URL 是否正确")
     except Exception:
-        print("[!] 登录失败")
-        print("[*] 正在检查 srun 报错码...")
-        try:
-            error = result['error_msg']
+        print("[!] 登录过程中出现异常, 未能完成请求")
+        return
+    # 到这里说明我们已经得到了 result 且 res != 'ok'
+    print("[!] 登录失败")
+    print("[*] 正在检查 srun 报错码...")
+    try:
+        error = result.get('error_msg')
+        if error:
             print(f"[*] srun 报错码: {error}")
+        else:
+            print("[!] 未提供 error_msg，服务器返回完整内容（前1000字符）：")
+            print(json.dumps(result, ensure_ascii=False)[:1000])
+    except Exception:
+        print("[!] 获取报错码失败, 请人工核验: 原始响应（前1000字符）")
+        try:
+            print(raw[:1000])
         except:
-            print("[!] 获取报错码失败, 请人工核验:")
-            print(resp.text[:100] + ('' if len(resp.text) < 100 else '...'))
+            pass
 
 
 def srun_portal_logout(
@@ -226,7 +256,7 @@ def srun_portal_logout(
 
 
 def logout():
-    username = input("[+] 请输入您的学号: ")
+    #自动获取登录 ip
     ip = get_ip(callback, url['rad_user_info'])
     assert ip != None, "获取 IP 失败, 请检查配置的 URL"
     srun_portal_logout(callback, username, ip, url['srun_portal'])
@@ -234,19 +264,14 @@ def logout():
 
 def login():
     import getpass
-    username = input("[+] 请输入您的学号: ")
-    password = getpass.getpass("[+] 请输入您的密码: ")
-    auto_ip = input("[?] 是否需要自动获取登录 ip [Y/n]: ") or 'Y'
-    if auto_ip.lower() == 'y':
-        ip = get_ip(callback, url['rad_user_info'])
-        assert ip != None, "获取 IP 失败, 请检查配置的 URL 或手动指定 ip"
-    else:
-        ip = input("[+] 请输入您的登录ip: ")
-    auto_os = input("[?] 是否需要指定设备os(默认为 Windows) [y/N]: ") or 'N'
+#自动获取登录 ip
+    ip = get_ip(callback, url['rad_user_info'])
+    assert ip != None, "获取 IP 失败, 请检查配置的 URL 或手动指定 ip"
+    auto_os = input("[?] 是否需要指定设备os(默认为Kindle) [y/N]: ") or 'N'
     if auto_os.lower() == 'y':
         os = input("[+] 请输入设备os: ")
     else:
-        os = "Windows"
+        os = "Kindle"
 
     token = get_challenge(
         callback, username,
